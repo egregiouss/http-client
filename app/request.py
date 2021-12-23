@@ -44,11 +44,10 @@ class HTTPRequest:
         request = [f"{self.method} {self.url.raw_path_qs} {'HTTP/1.1'}".encode()]
         for header, value in self.headers.items():
             request.append(f"{header}: {value}".encode())
-        print(request)
-        print(type(self.body))
+
         request.append(b"")
         request.append(bytes(self.body.encode()))
-        print(request)
+
         return b"\r\n".join(request)
 
     def change_url(self, url: str) -> None:
