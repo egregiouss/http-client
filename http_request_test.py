@@ -6,7 +6,7 @@ from app.client import Client
 
 def test_do_request():
     http_client = Client('https://vk.com', 'GET', [], None, None, "", 2)
-    response = http_client.send_request()
+    response = http_client.send_request(http_client.request)
     assert int(response.code) == 200
     assert float(response.protocol) == 1.1
 
@@ -42,10 +42,6 @@ def test_sch9():
                          None, None, "", 2)
 
     response = http_client.send_request(http_client.request)
-    try:
-        http_client.print_response()
-    except:
-        pass
 
 
 def test_http_ip():
