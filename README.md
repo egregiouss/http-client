@@ -35,3 +35,8 @@ python3 -m <URL> [OPTIONS]
 | -c       | add cookie              | -c "income=1"        |
 | -t       | Set timeout             | -t 3000              |
 
+
+###Example for connect via http and IP:
+``
+python3 -m app http://46.17.203.154
+``

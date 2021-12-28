@@ -1,7 +1,5 @@
 import argparse
 
-from yarl import URL
-
 from app.client import Client
 
 def parse_args():
@@ -31,6 +29,7 @@ def main():
 
     args = parse_args()
 
+
     client = Client(args.url,
                     args.method,
                     args.headers,
@@ -39,7 +38,7 @@ def main():
                     args.data,
                     args.timeout,
                     )
-    response = client.send_request()
+    response = client.send_request(client.request)
     client.print_response()
 
 

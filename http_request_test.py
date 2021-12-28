@@ -36,6 +36,33 @@ def test_set_method_with_url():
                                   'Hello'
     assert request.convert_to_raw().decode() == expected_bytes_request
 
+def test_sch9():
+    http_client = Client('https://sch9.ru/news', 'GET',
+                         [],
+                         None, None, "", 2)
+
+    response = http_client.send_request(http_client.request)
+    try:
+        http_client.print_response()
+    except:
+        pass
+
+
+def test_http_ip():
+    http_client = Client('http://46.17.203.154', 'GET',
+                         [],
+                         None, None, "", 2)
+
+    resp = http_client.send_request(http_client.request)
+    assert int(resp.content_len) == len(resp.body)
+
+
+def test_big():
+    http_client = Client('https://raw.githubusercontent.com/dwyl/english-words/master/words.txt', 'GET',
+                         [],
+                         None, None, "", 2)
+    resp = http_client.send_request(http_client.request)
+    assert int(resp.content_len) == len(resp.body)
 
 
 if __name__ == '__main__':
