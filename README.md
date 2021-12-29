@@ -43,6 +43,7 @@ python3 -m https://vk.com -H User-Agent Yandex -M GET
 | -M       | Choose request method   | -m POST              |
 | -c       | add cookie              | -c "income=1"        |
 | -t       | Set timeout             | -t 3000              |
+| -v       | Show response headers   | -v                   |
 
 
 ###Example for connect via http and IP:
