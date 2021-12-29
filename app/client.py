@@ -19,7 +19,8 @@ class OutputType(Enum):
     Console = 2
 
 class Client():
-    def __init__(self, url, method, headers,  cookie, file, body=b"", timeout=2):
+    def __init__(self, url, method, headers,  cookie, file, body=b"", timeout=2, verbose=False):
+        self.port = None
         self.pbar = None
         self.response = None
         self.head = None
@@ -29,6 +30,8 @@ class Client():
         self.cookie = cookie
         self.body = body
         self.request = self.build_request(url, method, headers, body, cookie)
+        self.timeout = timeout
+        self.verbose = verbose
 
 
     def build_request(self, url, method, headers, body, cookie) -> HTTPRequest:
@@ -36,7 +39,7 @@ class Client():
         return request
 
 
-    def send_request(self, request, timeout: int = 1000,
+    def send_request(self, request,
                    max_iterations: int = 10):
         while max_iterations >= 0:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -44,15 +47,15 @@ class Client():
                     sock = ssl.wrap_socket(sock)
                 addr = (self.request.url.hostname,
                             80 if self.request.url.scheme == 'http' else 443)
-
+                self.port = addr[1]
                 try:
                     logger.info(f"Attempting to connect to: {self.request.url.hostname}")
                     sock.connect(addr)
-                except socket.gaierror as e:
-                    raise ConnectingError(request.url.hostname, request.url.scheme)
+                except ConnectionRefusedError as e:
+                    raise ConnectingError(request.url.hostname, self.port)
 
 
-                sock.settimeout(timeout)
+                sock.settimeout(self.timeout)
                 max_iterations -= 1
                 logger.info("https handshake")
                 if request.url.scheme == "https":
@@ -82,9 +85,6 @@ class Client():
             if self.pbar is not None:
                 self.pbar.update(1024)
 
-
-
-
         return obtained_data
 
     def get_head(self, obtained_data, sock):
@@ -110,7 +110,11 @@ class Client():
 
 
     def print_response(self):
-        answer = [f'{self.response.convert_to_http_format().decode()}', '\r\n']
+        headers = ''
+        if self.verbose:
+            headers = self.response.convert_to_http_format().decode()
+        answer = [f'{headers}', '\r\n', self.response.body]
+
         if self.file:
            with open(self.file, 'bw') as file:
               file.write(self.response.body.encode(self.response.charset))

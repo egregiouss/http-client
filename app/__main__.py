@@ -21,6 +21,12 @@ def parse_args():
     parser.add_argument("-t", "--timeout", type=str, help="Время ожидания ответа")
     parser.add_argument("-F", "--file", type=str, help="Сохранить данные ответа в файл")
     parser.add_argument("-c", "--cookie", type=str, default="", help="Добавить cookie")
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Выводит отправляемые заголовки на консоль.",
+    )
 
     return parser.parse_args()
 
@@ -37,6 +43,7 @@ def main():
                     args.file,
                     args.data,
                     args.timeout,
+                    args.verbose
                     )
     response = client.send_request(client.request)
     client.print_response()
