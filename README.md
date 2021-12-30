@@ -35,15 +35,16 @@ python3 -m <URL> [OPTIONS]
 python3 -m https://vk.com -H User-Agent Yandex -M GET
 ```
 
-| Argument | Action                  | Using Examples       | 
-|----------|-------------------------|----------------------|
-| -d       | Set data                | -d "Hello, World!"   |
-| -F       | Write output in file    | -f "test.txt"        |
-| -H       | Add headers(Split by $) | -H User-Agent Yandex |
-| -M       | Choose request method   | -m POST              |
-| -c       | add cookie              | -c "income=1"        |
-| -t       | Set timeout             | -t 3000              |
-| -v       | Show response headers   | -v                   |
+| Argument | Action                                                           | Using Examples       | 
+|----------|------------------------------------------------------------------|----------------------|
+| -d       | Set data                                                         | -d "Hello, World!"   |
+| -F       | Write output in file                                             | -f "test.txt"        |
+| -H       | Add headers(Split by $)                                          | -H User-Agent Yandex |
+| -M       | Choose request method                                            | -m POST              |
+| -c       | add cookie                                                       | -c "income=1"        |
+| -t       | Set timeout                                                      | -t 3000              |
+| -v       | Show response headers                                            | -v                   |
+| -b       | Show progress bar(load response in memory) by default streaming) | -v                   |
 
 
 ###Example for connect via http and IP:
