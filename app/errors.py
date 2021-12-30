@@ -28,6 +28,13 @@ class ConnectingError(APIError, socket.gaierror):
     def __str__(self):
         return f"Не удалось подключиться по заданному адресу: {self.arg}"
 
+class DecodingError (APIError, socket.gaierror):
+    def __init__(self, charset):
+        self.arg = f"{charset}"
+
+    def __str__(self):
+        return f"Не удалось декодировать данные используя кодировку{self.arg}"
+
 class RedirectionsError(APIError, socket.gaierror):
     def __init__(self, redirections):
         self.arg = f"{redirections}"

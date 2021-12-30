@@ -1,8 +1,10 @@
 import unittest
 
+import pytest
+
 from app.request import HTTPRequest
 from app.client import Client
-
+from app.errors import DecodingError
 
 def test_do_request():
     http_client = Client('https://vk.com', 'GET', [], None, None, "", 2)
@@ -44,21 +46,24 @@ def test_sch9():
     response = http_client.send_request(http_client.request)
 
 
-def test_http_ip():
-    http_client = Client('http://46.17.203.154', 'GET',
-                         [],
-                         None, None, "", 2)
-
-    resp = http_client.send_request(http_client.request)
-    assert int(resp.content_len) == len(resp.body)
 
 
 def test_big():
     http_client = Client('https://raw.githubusercontent.com/dwyl/english-words/master/words.txt', 'GET',
                          [],
-                         None, None, "", 2)
+                         None, None, "", 2, False, True)
     resp = http_client.send_request(http_client.request)
     assert int(resp.content_len) == len(resp.body)
+
+def test_yandex():
+    http_client = Client('https://ulearn.me', 'GET',
+                         [],
+                         None, None, "", 2)
+    try:
+        resp = http_client.send_request(http_client.request)
+    except DecodingError as e:
+        pytest.fail(str(e))
+
 
 
 if __name__ == '__main__':

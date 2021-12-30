@@ -27,6 +27,12 @@ def parse_args():
         action="store_true",
         help="Выводит отправляемые заголовки на консоль.",
     )
+    parser.add_argument(
+        "-b",
+        "--bar",
+        action="store_true",
+        help="Показывать прогресс бар получения ответа",
+    )
 
     return parser.parse_args()
 
@@ -43,7 +49,8 @@ def main():
                     args.file,
                     args.data,
                     args.timeout,
-                    args.verbose
+                    args.verbose,
+                    args.bar
                     )
     response = client.send_request(client.request)
     client.print_response()

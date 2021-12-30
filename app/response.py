@@ -1,6 +1,6 @@
 import re
 from dataclasses import dataclass, field
-
+from app.errors import DecodingError
 
 class Response:
     body: str = ''
@@ -10,6 +10,9 @@ class Response:
     headers = {}
     protocol: float = 1.0
 
+    def __init__(self):
+        self.content_len = None
+
     def convert_to_http_format(self):
         response = [f"HTTP/{self.protocol} {self.code} OK"]
         for header, value in self.headers.items():
@@ -17,14 +20,16 @@ class Response:
         return '\r\n'.join(response).encode()
 
     def parse(self, data: bytes):
-
-        response = data.decode("cp850")
+        try:
+            response = data.decode("iso-8859-1")
+        except UnicodeDecodeError as e:
+            raise DecodingError("iso-8859-1")
         self.code = (re.search(r" [\d]* ", response)).group(0)
         self.protocol = (re.search(r"[\d.]* ", response)).group(0)
 
         head = response.split("\r\n\r\n")[0]
         self.body = "".join(response.split("\r\n\r\n")[1:])
-        self.charset = "utf-8"
+        self.charset = "iso-8859-1"
         self.content_len = None
         self.headers = {}
         self.location = ""
@@ -39,7 +44,7 @@ class Response:
                     search_charset = re.search(r"[a-zA-z/]*; " r"charset="
                                                r"(?P<charset>" r"[\w\d-]*)",
                                                search_headers.group("value"))
-                    self.charset = 'utf-8' if search_charset is None \
+                    self.charset = 'iso-8859-1' if search_charset is None \
                         else search_charset.group("charset")
                 if search_headers.group("header") == "Location" \
                         or search_headers.group("header") == "location":

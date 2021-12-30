@@ -19,7 +19,8 @@ class OutputType(Enum):
     Console = 2
 
 class Client():
-    def __init__(self, url, method, headers,  cookie, file, body=b"", timeout=2, verbose=False):
+    def __init__(self, url, method, headers,  cookie, file, body=b"", timeout=2, verbose=False, is_bar=False):
+
         self.port = None
         self.pbar = None
         self.response = None
@@ -32,6 +33,7 @@ class Client():
         self.request = self.build_request(url, method, headers, body, cookie)
         self.timeout = timeout
         self.verbose = verbose
+        self.is_bar = is_bar
 
 
     def build_request(self, url, method, headers, body, cookie) -> HTTPRequest:
@@ -81,10 +83,12 @@ class Client():
             data = sock.recv(1024)
             if not data:
                 break
-            obtained_data += data
-            if self.pbar is not None:
-                self.pbar.update(1024)
-
+            if self.is_bar:
+                obtained_data += data
+                if self.pbar is not None:
+                    self.pbar.update(1024)
+            else:
+                self.print_body_part(data)
         return obtained_data
 
     def get_head(self, obtained_data, sock):
@@ -95,9 +99,8 @@ class Client():
             obtained_data += data
             if b"\r\n\r\n" in obtained_data:
                 self.head = Response().parse(obtained_data)
-                if self.head.content_len is not None and int(self.head.content_len) != 0 and int(self.head.code) == 200:
+                if self.is_bar and self.head.content_len is not None and int(self.head.content_len) != 0 and int(self.head.code) == 200:
                     self.pbar = tqdm(total=int(self.head.content_len) + 1)
-
                 break
         return obtained_data
 
@@ -106,10 +109,13 @@ class Client():
         sys.stdout.write(head)
 
     def print_body_part(self, part):
-        sys.stdout.write(part.decode())
-
+        try:
+            sys.stdout.write(part.decode('iso-8859-1'))
+        except UnicodeDecodeError as e:
+            raise DecodingError('iso-8859-1')
 
     def print_response(self):
+
         headers = ''
         if self.verbose:
             headers = self.response.convert_to_http_format().decode()
@@ -121,3 +127,4 @@ class Client():
         else:
             s = "\r\n".join(answer)
             sys.stdout.write("\r\n".join(answer))
+
