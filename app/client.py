@@ -93,7 +93,7 @@ class Client():
             if not data:
                 break
             obtained_data += data
-            if "\r\n\r\n" in obtained_data.decode():
+            if b"\r\n\r\n" in obtained_data:
                 self.head = Response().parse(obtained_data)
                 if self.head.content_len is not None and int(self.head.content_len) != 0 and int(self.head.code) == 200:
                     self.pbar = tqdm(total=int(self.head.content_len) + 1)

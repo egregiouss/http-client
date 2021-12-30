@@ -17,7 +17,8 @@ class Response:
         return '\r\n'.join(response).encode()
 
     def parse(self, data: bytes):
-        response = data.decode("utf-8")
+        print(data)
+        response = data.decode("iso-8859-1")
         self.code = (re.search(r" [\d]* ", response)).group(0)
         self.protocol = (re.search(r"[\d.]* ", response)).group(0)
 
