@@ -87,12 +87,13 @@ class Client():
             if not data:
                 break
             if self.is_bar:
-                obtained_data += data
                 if self.pbar is not None:
                     self.pbar.update(1024)
-            elif self.file:
-                with open(self.file, 'ba') as file:
-                    file.write(data)
+                    if self.file:
+                        with open(self.file, 'ba') as file:
+                            file.write(data)
+                    else:
+                        obtained_data += data
             else:
                 self.print_body_part(data)
         return obtained_data
