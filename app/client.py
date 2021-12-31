@@ -79,6 +79,9 @@ class Client():
         raise RedirectionsError(max_iterations)
 
     def get_body(self, obtained_data, sock):
+        if self.file:
+            with open(self.file, 'bw') as file:
+                pass
         while True:
             data = sock.recv(1024)
             if not data:
