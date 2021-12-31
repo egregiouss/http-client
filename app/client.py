@@ -87,6 +87,9 @@ class Client():
                 obtained_data += data
                 if self.pbar is not None:
                     self.pbar.update(1024)
+            elif self.file:
+                with open(self.file, 'ba') as file:
+                    file.write(data)
             else:
                 self.print_body_part(data)
         return obtained_data
@@ -120,11 +123,6 @@ class Client():
         if self.verbose:
             headers = self.response.convert_to_http_format().decode()
         answer = [f'{headers}', '\r\n', self.response.body]
-
-        if self.file:
-           with open(self.file, 'bw') as file:
-              file.write(self.response.body.encode(self.response.charset))
-        else:
-            s = "\r\n".join(answer)
-            sys.stdout.write("\r\n".join(answer))
+        s = "\r\n".join(answer)
+        sys.stdout.write("\r\n".join(answer))
 

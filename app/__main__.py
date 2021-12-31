@@ -53,7 +53,8 @@ def main():
                     args.bar
                     )
     response = client.send_request(client.request)
-    client.print_response()
+    if not args.file:
+        client.print_response()
 
 
 if __name__ == '__main__':
