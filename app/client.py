@@ -1,132 +1,86 @@
-import io
 import logging
-import time
-
-from tqdm import tqdm
 import socket
-import ssl
 import sys
-from enum import Enum
-from app.request import HTTPRequest
+import app.parser as parser
+from app.request import Request
 from app.response import Response
-from app.errors import *
+import re
+
+cookies = {}
+
 logger = logging.getLogger(__name__)
 
 
+def parse_uri(uri):
+    _path = '/'
+    _scheme = ''
 
-class OutputType(Enum):
-    File = 1,
-    Console = 2
+    if re.match('http://', uri):
+        uri = uri[7:]
+        _scheme = 'http'
+    elif re.match(r'https://', uri):
+        uri = uri[8:]
+        _scheme = 'https'
 
-class Client():
-    def __init__(self, url, method, headers,  cookie, file, body=b"", timeout=2, verbose=False, is_bar=False):
-
-        self.port = None
-        self.pbar = None
-        self.response = None
-        self.head = None
-        self.file = file
-        self.method = method
-        self.headers = headers
-        self.cookie = cookie
-        self.body = body
-        self.request = self.build_request(url, method, headers, body, cookie)
-        self.timeout = timeout
-        self.verbose = verbose
-        self.is_bar = is_bar
+    _host = uri.split('/')[0]
+    if '/' in uri:
+        _path += uri[len(_host) + 1:]
+    return _host, _path, _scheme
 
 
-    def build_request(self, url, method, headers, body, cookie) -> HTTPRequest:
-        request = HTTPRequest(url, method, headers, body, cookie)
-        return request
+def send(args):
+    args = parser.convert_to_list(args)
+    _host, _path, scheme = parse_uri(args[0])
+    del args[0]
+    _request = Request(_host, _path, scheme, *args)
+    _request.set_cookies(cookies)
+    try:
+        _sock = _request.send_data()
+    except socket.gaierror:
+        logger.info('bad request')
+        raise socket.gaierror
+    return _sock, _host, _path, scheme
 
 
-    def send_request(self, request,
-                   max_iterations: int = 10):
-        while max_iterations >= 0:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                if request.scheme == "https":
-                    sock = ssl.wrap_socket(sock)
-                addr = (self.request.url.hostname,
-                            80 if self.request.url.scheme == 'http' else 443)
-                self.port = addr[1]
+def get(_sock, _host, args):
+    _response = Response(_sock, args.file)
+    _response.receive(args.file, args.streaming, args.verbose)
+
+    return _response
+
+
+def change_url(addr, host, scheme):
+    if host in addr:
+        return addr
+    else:
+        return scheme + '://' + host + addr
+
+
+def main():
+    try:
+        arguments = parser.parse_args()
+        sock, host, path, scheme = send(arguments)
+        response = get(sock, host, arguments)
+        while re.search(r'3\d\d', response.headers['code']) and arguments.redirects:
+            try:
+                addr = response.headers['location'][:-2]
+
                 try:
-                    logger.info(f"Attempting to connect to: {self.request.url.hostname}")
-                    sock.connect(addr)
-                except ConnectionRefusedError as e:
-                    raise ConnectingError(request.url.hostname, self.port)
-
-
-                sock.settimeout(self.timeout)
-                max_iterations -= 1
-                logger.info("https handshake")
-                if request.url.scheme == "https":
-                    sock.do_handshake()
-
-                sock.sendall(request.convert_to_raw())
-                obtained_data = b''
-                obtained_data = self.get_head(obtained_data, sock)
-                obtained_data = self.get_body(obtained_data, sock)
-                try:
-                    self.response = Response().parse(obtained_data)
-                except UnicodeDecodeError as e:
+                    arguments.uri = change_url(addr, host, scheme)
+                    sock, host, path, scheme = send(arguments)
+                except ValueError:
                     continue
-                if 300 <= int(self.response.code) < 400:
+                response = get(sock, host, arguments)
 
-                    self.request.change_url(self.response.location, self.request.url.hostname)
-                else:
-                    return self.response
-        raise RedirectionsError(max_iterations)
+            except KeyError:
+                logger.info('there\'s no address to go')
+        if arguments.long:
+            response.print()
 
-    def get_body(self, obtained_data, sock):
-        if self.file:
-            with open(self.file, 'bw') as file:
-                pass
-        while True:
-            data = sock.recv(1024)
-            if not data:
-                break
-            if self.is_bar:
-                if self.pbar is not None:
-                    self.pbar.update(1024)
-                    if self.file:
-                        with open(self.file, 'ba') as file:
-                            file.write(data)
-                    else:
-                        obtained_data += data
-            else:
-                self.print_body_part(data)
-        return obtained_data
+    except KeyboardInterrupt:
+        logger.info('closing connections')
+        logger.info('client closed')
+        sys.exit()
 
-    def get_head(self, obtained_data, sock):
-        while True:
-            data = sock.recv(4)
-            if not data:
-                break
-            obtained_data += data
-            if b"\r\n\r\n" in obtained_data:
-                self.head = Response().parse(obtained_data)
-                if self.is_bar and self.head.content_len is not None and int(self.head.content_len) != 0 and int(self.head.code) == 200:
-                    self.pbar = tqdm(total=int(self.head.content_len) + 1)
-                break
-        return obtained_data
 
-    def print_head(self, head):
-        head: str = head.convert_to_http_format().decode()
-        sys.stdout.write(head)
-
-    def print_body_part(self, part):
-        try:
-            sys.stdout.write(part.decode('iso-8859-1'))
-        except UnicodeDecodeError as e:
-            raise DecodingError('iso-8859-1')
-
-    def print_response(self):
-
-        headers = ''
-        if self.verbose:
-            headers = self.response.convert_to_http_format().decode()
-        answer = [f'{headers}', '\r\n', self.response.body]
-        s = "\r\n".join(answer)
-        sys.stdout.write("\r\n".join(answer))
 
