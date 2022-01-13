@@ -130,10 +130,11 @@ class Response:
 def get_chunk_size(reader):
     hex_chunk_size=''
     try:
-        hex_chunk_size = reader.readline().decode('iso-8859-1')
-        if hex_chunk_size == '\r\n':
-            hex_chunk_size += reader.readline().decode('iso-8859-1')
+        hex_chunk_size = reader.readline()
+        if hex_chunk_size == b'\r\n':
+            hex_chunk_size += reader.readline()
+
+        print(hex_chunk_size)
+        return int(hex_chunk_size.decode('iso-8859-1'), 16)
     except ValueError as e:
         raise DecodingError('iso-8859-1', hex_chunk_size)
-
-    return int(hex_chunk_size, 16)
