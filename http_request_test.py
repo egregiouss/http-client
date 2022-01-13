@@ -57,6 +57,7 @@ class MockResponse:
         self.sock = None
         self.response_headers = None
         self.response_body = None
+        self.response_body_len = 0
         self.headers = None
         self.cookies = None
         self.filename = None
@@ -79,6 +80,7 @@ class MockResponse:
     def receive_headers(self, text):
         reader = self._get_reader(text)
         self.response.get_headers(reader)
+        self.response.headers['code'] = self.response.headers['code'].decode()
 
         self.headers = self.response.headers
         self.response_headers = self.response.response_headers
@@ -96,6 +98,7 @@ class MockResponse:
         self.response.dynamic_recv(reader, False, False)
 
         self.response_body = self.response.response_body
+        self.response_body_len = self.response.response_body_len
 
     def receive(self):
         self.response.receive(False, False)
@@ -161,13 +164,6 @@ class TestFunctionalityResponse(TestCase):
         self.assertEqual(response.response_body, text)
         self.clear_response()
 
-    def test_dynamic_recv(self):
-        text = b'8\r\n12345678\r\n0\r\n\r\n'
-        response = MockResponse()
-        response.dynamic_recv(text)
-
-        self.assertEqual(response.response_body, b'12345678')
-        self.clear_response()
 
     def test_full_receive_with_handled_headers(self):
         text = b'HTTP 200 OK\r\nHeader: value\r\nContent-Type: text/html; ' \
@@ -175,20 +171,13 @@ class TestFunctionalityResponse(TestCase):
                b'\r\n\r\nsome body text'
         self.response.sock = get_fake_socket(text)
 
-        self.response.receive(False, False, True)
+        self.response.receive(False, True, True)
 
         self.assertEqual(self.response.charset, 'utf8\r\n')
         self.assertEqual(self.response.connection, False)
-        self.assertEqual(len(self.response.response_body), 14)
+        print(self.response.response_body)
+        self.assertEqual(self.response.response_body_len, 11)
 
-    def test_full_receive_without_handled_headers(self):
-        text = b'HTTP 200 OK\r\nHeader: value\r\nTransfer-Encoding: chunked' \
-               b'\r\n\r\nE\r\nsome body text\r\n0\r\n\r\n'
-        self.response.sock = get_fake_socket(text)
-
-        self.response.receive(False, False, True)
-
-        self.assertEqual(len(self.response.response_body), 14)
 
 
 class MockRequest:

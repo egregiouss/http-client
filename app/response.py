@@ -1,13 +1,13 @@
 import re
 import gzip
 from tqdm import tqdm
-
+from app.errors import *
 
 def get_chunk_size(reader):
     hex_chunk_size = reader.readline().decode('utf8')
     if hex_chunk_size == '\r\n':
         hex_chunk_size += reader.readline().decode('utf8')
-
+    print(hex_chunk_size)
     return int(hex_chunk_size, 16)
 
 
@@ -16,6 +16,7 @@ class Response:
         self.sock = sock
         self.response_headers = ''
         self.response_body = b''
+        self.response_body_len = 0
         self.headers = {}
         self.cookies = []
         self.filename = filename
@@ -26,16 +27,15 @@ class Response:
     def receive(self, is_file, is_streaming, is_verb):
         with self.sock.makefile(mode='rb') as fd:
             self.get_headers(fd)
-
-            try:
+            if 'content-length' in self.headers.keys():
                 content_length = self.headers['content-length']
                 self.static_recv(fd, int(content_length), is_file, is_streaming)
-            except KeyError:
+            else:
                 try:
                     _ = self.headers['transfer-encoding']
                     self.dynamic_recv(fd, is_file, is_streaming)
                 except KeyError:
-                    return
+                    raise HeaderFormatError("transfer-encoding")
             if is_verb:
                 self.print_headers()
 
@@ -55,9 +55,10 @@ class Response:
             pass
 
     def get_headers(self, reader):
-        self.headers['code'] = reader.readline().decode('utf8')
-        header = reader.readline().decode('utf8')
-        while header != '\r\n':
+        self.headers['code'] = reader.readline()
+        header = reader.readline()
+        while header != b'\r\n':
+            header = header.decode('iso-8859-1')
             self.response_headers += header
             values = header.split(': ')
             key = values[0]
@@ -76,7 +77,7 @@ class Response:
                     pass
             else:
                 self.headers[key.casefold()] = value
-            header = reader.readline().decode('utf8')
+            header = reader.readline()
 
     def print(self):
         if self.charset is not None:
@@ -85,7 +86,7 @@ class Response:
             print(self.response_body)
 
     def print_headers(self):
-        print(f"\r\n{self.headers['code']}")
+        print(f"\r\n{self.headers['code'].decode('iso-8859-1')}")
         print(self.response_headers)
 
     def static_recv(self, reader, length, is_file, is_streaming, pbar=None):
@@ -96,17 +97,17 @@ class Response:
         remain = length % count_of_updates
         if is_file and self.file is None:
             self.file = open(self.filename, 'wb')
-            print(self.file)
         for i in range(count_of_updates):
             data = reader.read(fragment)
-            self.response_body += data
-            if is_streaming:
-                print(data)
+            self.response_body_len += len(data)
             if is_file and self.file is not None:
                 self.file.write(data)
                 self.file.flush()
+            elif is_streaming:
+                print(data)
+            else:
+                self.response_body += data
             pbar.update(fragment)
-        self.response_body += reader.read(remain)
         pbar.update(remain)
         if pbar.total == length:
             pbar.close()
@@ -117,11 +118,11 @@ class Response:
         pbar = tqdm(total=65536)
         chunk_size = get_chunk_size(reader)
         while chunk_size != 0:
-            if len(self.response_body) + chunk_size > pbar.total:
-                raising_total = (len(self.response_body) + chunk_size) * 2
+            if self.response_body_len + chunk_size > pbar.total:
+                raising_total = self.response_body_len + chunk_size * 2
                 pbar.total += raising_total
             self.static_recv(reader, chunk_size, is_file, is_streaming, pbar)
             chunk_size = get_chunk_size(reader)
 
-        pbar.total = len(self.response_body)
+        pbar.total = self.response_body_len
         pbar.close()

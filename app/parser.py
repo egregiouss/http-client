@@ -28,9 +28,6 @@ def parse_args():
     parser.add_argument('--streaming', '-s',
                         help='выводить данные в консоль по мере получения',
                         action="store_true")
-    parser.add_argument('--long', '-l',
-                        help='выводить тело ответа',
-                        action="store_true")
     parser.add_argument('--verbose', '-v',
                         help='выводить заголовки ответа',
                         action="store_false", default=True)

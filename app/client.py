@@ -61,25 +61,22 @@ def main():
     try:
         arguments = parser.parse_args()
         sock, host, path, scheme = send(arguments)
+        print(sock, host, path, scheme )
         response = get(sock, host, arguments)
-        try:
-            ans_code = re.findall(r'\d\d\d', response.headers['code'])[0]
-        except ParsingError:
-            raise ParsingError("answer code")
-        while 300<= int(ans_code) < 400 and arguments.redirects:
+        while re.search(r'3\d\d', response.headers['code'].decode('iso-8859-1')) and arguments.redirects:
             try:
                 addr = response.headers['location'][:-2]
-
                 try:
                     arguments.uri = change_url(addr, host, scheme)
                     sock, host, path, scheme = send(arguments)
+
                 except ValueError:
                     continue
                 response = get(sock, host, arguments)
 
             except KeyError:
-                logger.info('there\'s no address to go')
-        if arguments.long:
+                logger.info('theres no address to go')
+        if not arguments.streaming:
             response.print()
 
     except KeyboardInterrupt:
