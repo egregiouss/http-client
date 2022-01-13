@@ -5,6 +5,7 @@ import app.parser as parser
 from app.request import Request
 from app.response import Response
 import re
+from app.errors import *
 
 cookies = {}
 
@@ -61,7 +62,11 @@ def main():
         arguments = parser.parse_args()
         sock, host, path, scheme = send(arguments)
         response = get(sock, host, arguments)
-        while re.search(r'3\d\d', response.headers['code']) and arguments.redirects:
+        try:
+            ans_code = re.findall(r'\d\d\d', response.headers['code'])[0]
+        except ParsingError:
+            raise ParsingError("answer code")
+        while 300<= int(ans_code) < 400 and arguments.redirects:
             try:
                 addr = response.headers['location'][:-2]
 

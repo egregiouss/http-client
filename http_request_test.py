@@ -252,7 +252,7 @@ class TestFunctionalityRequest(TestCase):
     def test_modifying_data_with_body(self):
         headers = ['Access-Encoding: gzip', 'Content-Type: plain/text; '
                                             'charset=utf8']
-        body = 'look at me, I\'m body'
+        body = 'texttextexttexttext'
 
         request = MockRequest()
         request._create_request(headers=headers,

@@ -3,6 +3,7 @@ import socket
 import gzip
 import ssl
 from datetime import datetime
+from  app.errors import *
 
 
 class Request:
@@ -29,7 +30,10 @@ class Request:
 
     def send_data(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect((self.host, self.PORT))
+        try:
+            sock.connect((self.host, self.PORT))
+        except ConnectingError as e:
+            raise ConnectingError(self.host, self.PORT)
         sock.settimeout(self.timeout)
         if self.scheme == 'https':
             sock = ssl.wrap_socket(sock)
