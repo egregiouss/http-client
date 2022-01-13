@@ -63,7 +63,7 @@ def main():
         sock, host, path, scheme = send(arguments)
         print(sock, host, path, scheme )
         response = get(sock, host, arguments)
-        while re.search(r'3\d\d', response.headers['code'].decode('iso-8859-1')) and arguments.redirects:
+        while re.search(r'3\d\d', response.headers['code'].decode()) and arguments.redirects:
             try:
                 addr = response.headers['location'][:-2]
                 try:

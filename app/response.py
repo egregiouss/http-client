@@ -3,12 +3,7 @@ import gzip
 from tqdm import tqdm
 from app.errors import *
 
-def get_chunk_size(reader):
-    hex_chunk_size = reader.readline().decode('utf8')
-    if hex_chunk_size == '\r\n':
-        hex_chunk_size += reader.readline().decode('utf8')
-    print(hex_chunk_size)
-    return int(hex_chunk_size, 16)
+
 
 
 class Response:
@@ -100,29 +95,45 @@ class Response:
         for i in range(count_of_updates):
             data = reader.read(fragment)
             self.response_body_len += len(data)
-            if is_file and self.file is not None:
-                self.file.write(data)
-                self.file.flush()
-            elif is_streaming:
-                print(data)
-            else:
-                self.response_body += data
+            self.print_chunk(data, is_file, is_streaming)
             pbar.update(fragment)
+        end = reader.read(remain)
+        self.print_chunk(end, is_file, is_streaming)
         pbar.update(remain)
         if pbar.total == length:
             pbar.close()
             if is_file and self.file is not None:
                 self.file.close()
 
+    def print_chunk(self, chunk, is_file, is_streaming):
+        if is_file and self.file is not None:
+            self.file.write(chunk)
+            self.file.flush()
+        elif is_streaming:
+            print(chunk)
+        else:
+            self.response_body += chunk
+
     def dynamic_recv(self, reader, is_file, is_streaming):
         pbar = tqdm(total=65536)
         chunk_size = get_chunk_size(reader)
         while chunk_size != 0:
             if self.response_body_len + chunk_size > pbar.total:
-                raising_total = self.response_body_len + chunk_size * 2
+                raising_total = (self.response_body_len + chunk_size) * 2
                 pbar.total += raising_total
             self.static_recv(reader, chunk_size, is_file, is_streaming, pbar)
             chunk_size = get_chunk_size(reader)
 
         pbar.total = self.response_body_len
         pbar.close()
+
+def get_chunk_size(reader):
+    hex_chunk_size=''
+    try:
+        hex_chunk_size = reader.readline().decode('iso-8859-1')
+        if hex_chunk_size == '\r\n':
+            hex_chunk_size += reader.readline().decode('iso-8859-1')
+    except ValueError as e:
+        raise DecodingError('iso-8859-1', hex_chunk_size)
+
+    return int(hex_chunk_size, 16)
